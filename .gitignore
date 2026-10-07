@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.vsix
+.test-user-data/
+.vscode-test/
+fixtures/
+benchmark-results/
+.DS_Store
+SHA256SUMS.txt

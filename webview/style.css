@@ -1,0 +1,80 @@
+:root { color-scheme: light dark; --border: var(--vscode-panel-border, #454545); --muted: var(--vscode-descriptionForeground, #888); }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body, #app { height: 100%; margin: 0; overflow: hidden; }
+body { font: 13px var(--vscode-font-family, system-ui); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
+button, input, select, summary { font: inherit; color: inherit; }
+button, select, input { background: var(--vscode-input-background); border: 1px solid var(--border); border-radius: 3px; padding: 3px 6px; height: 26px; }
+button { cursor: pointer; white-space: nowrap; }
+button:hover, summary:hover { background: var(--vscode-toolbar-hoverBackground); }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 1px solid var(--vscode-focusBorder); }
+button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
+button.active { background: var(--vscode-list-inactiveSelectionBackground); border-color: var(--vscode-focusBorder); }
+#app { display: flex; flex-direction: column; }
+.toolbar { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.navigation, .view-tools, .button-group { display: flex; align-items: center; gap: 4px; }
+.navigation { min-width: 0; }
+.view-tools { flex-shrink: 0; }
+#line { width: 76px; }
+#initial { width: 96px; }
+#previous, #next { font-size: 18px; line-height: 18px; min-width: 24px; }
+.dropdown { position: relative; }
+.dropdown > summary { cursor: pointer; list-style: none; white-space: nowrap; border-radius: 3px; padding: 4px 6px; }
+.dropdown > summary::-webkit-details-marker { display: none; }
+.dropdown > summary::after { content: ' ▾'; color: var(--muted); }
+.menu-panel { position: absolute; right: 0; z-index: 30; border: 1px solid var(--border); border-radius: 4px; padding: 8px; background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); color: var(--vscode-foreground); box-shadow: 0 4px 16px var(--vscode-widget-shadow, #0004); }
+.actions-panel { top: calc(100% + 6px); width: 190px; display: flex; flex-direction: column; gap: 6px; }
+.actions-panel > button { text-align: left; }
+.menu-label { color: var(--muted); font-size: 12px; }
+.index-panel { bottom: calc(100% + 6px); width: min(420px, calc(100vw - 16px)); display: flex; flex-direction: column; gap: 8px; line-height: 1.6; }
+#message { flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--vscode-textBlockQuote-background); border-bottom: 1px solid var(--border); }
+#message.error { color: var(--vscode-errorForeground); }
+#message span { flex: 1; white-space: pre-wrap; max-height: 72px; overflow: auto; }
+main { display: flex; flex: 1; min-height: 0; position: relative; }
+#content { flex: 1; min-width: 0; position: relative; }
+#editor { height: 100%; }
+#large { height: 100%; overflow: auto; padding: 10px 14px; }
+#splitter { flex: 0 0 4px; cursor: col-resize; background: var(--border); touch-action: none; }
+aside { flex: 0 0 auto; width: min(200px, 20%); min-width: 140px; max-width: 30%; display: flex; flex-direction: column; background: var(--vscode-editor-background); }
+.outline-head { display: flex; padding: 5px 6px; gap: 4px; align-items: center; border-bottom: 1px solid var(--border); }
+.outline-head strong { flex: 1; font-size: 12px; }
+.outline-head button { border-color: transparent; }
+.outline-head button.active { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
+#outline { flex: 1; min-height: 0; overflow: auto; position: relative; }
+#outline-inner { position: relative; }
+.outline-row { position: absolute; left: 0; right: 0; height: 28px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 0; background: transparent; text-align: left; overflow: hidden; }
+.outline-row .key { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline-row .type { color: var(--muted); font-size: 11px; }
+.outline-row.selected { background: var(--vscode-list-inactiveSelectionBackground); }
+#outline-hint { padding: 6px 8px; font-size: 11px; color: var(--muted); }
+.statusbar { flex: 0 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 8px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); position: relative; }
+#details { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#index-details { flex-shrink: 0; }
+#progress { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; border: 0; margin: 0; accent-color: var(--vscode-progressBar-background); }
+.focus-mode .statusbar { display: none; }
+.hint { color: var(--muted); line-height: 1.65; }
+.tree-node { margin: 4px 0; padding: 5px 6px; border-left: 1px solid var(--border); }
+.tree-header { display: flex; gap: 8px; align-items: center; }
+.tree-header .label { font-family: var(--vscode-editor-font-family, monospace); overflow-wrap: anywhere; }
+.tree-header .preview { color: var(--muted); max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-children { margin-left: 12px; }
+.tree-toggle { min-width: 26px; padding: 2px 4px; }
+.pager { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.fragment { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--vscode-editor-font-family, monospace); font-size: var(--vscode-editor-font-size, 13px); padding: 10px; background: var(--vscode-textCodeBlock-background); overflow: auto; }
+.no-wrap .fragment { white-space: pre; overflow-wrap: normal; }
+.large-status { margin-bottom: 8px; line-height: 1.6; }
+.focus-line { background: var(--vscode-editor-findMatchHighlightBackground); }
+@media (max-width: 720px) {
+  #initial, #first, #last { display: none; }
+  .toolbar { gap: 4px; padding: 4px 6px; }
+  .toolbar button { padding-inline: 5px; }
+  #line { width: 62px; }
+  #splitter { display: none; }
+  aside { position: absolute; top: 0; bottom: 0; right: 0; z-index: 20; width: 220px; max-width: 75%; box-shadow: -4px 0 12px var(--vscode-widget-shadow, #0004); border-left: 1px solid var(--border); }
+}
+@media (max-width: 470px) {
+  .toolbar { flex-wrap: wrap; }
+  .view-tools { margin-left: auto; }
+  .statusbar { gap: 4px; }
+}

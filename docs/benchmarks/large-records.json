@@ -1,0 +1,26 @@
+[
+  {
+    "valueMiB": 32,
+    "bytes": 40443366,
+    "elapsedMs": 290.52312500000005,
+    "firstProgressMs": 14.736166999999995,
+    "peakProcessRssMiB": 115.171875,
+    "incrementalRssMiB": 56.265625,
+    "cancelMs": 0.6569580000000315,
+    "capturedChildren": 3,
+    "arrayCount": 1000000,
+    "includesWebview": false
+  },
+  {
+    "valueMiB": 256,
+    "bytes": 268435501,
+    "elapsedMs": 620.79,
+    "firstProgressMs": 12.870249999999999,
+    "peakProcessRssMiB": 116.375,
+    "incrementalRssMiB": 4.8125,
+    "cancelMs": 0.5861250000000382,
+    "capturedChildren": 3,
+    "arrayCount": 0,
+    "includesWebview": false
+  }
+]

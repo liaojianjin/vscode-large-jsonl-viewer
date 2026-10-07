@@ -1,0 +1,139 @@
+{
+  "name": "large-jsonl-viewer",
+  "displayName": "Large JSONL Viewer",
+  "description": "A read-only, indexed JSONL/NDJSON viewer with folding and key navigation.",
+  "version": "0.1.1",
+  "publisher": "local-jsonl-tools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liaojianjin/vscode-large-jsonl-viewer.git"
+  },
+  "homepage": "https://github.com/liaojianjin/vscode-large-jsonl-viewer#readme",
+  "bugs": { "url": "https://github.com/liaojianjin/vscode-large-jsonl-viewer/issues" },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "jsonl",
+    "ndjson",
+    "large files",
+    "json"
+  ],
+  "main": "./dist/extension.cjs",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "activationEvents": [
+    "onCustomEditor:largeJsonl.viewer"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "largeJsonl.open",
+        "title": "Large JSONL: Open in Viewer"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "largeJsonl.open",
+          "when": "resourceScheme == file && resourceExtname =~ /\\.(jsonl|ndjson)$/i",
+          "group": "navigation@20"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "largeJsonl.viewer",
+        "displayName": "Large JSONL Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.jsonl"
+          },
+          {
+            "filenamePattern": "*.ndjson"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "configuration": {
+      "title": "Large JSONL Viewer",
+      "properties": {
+        "largeJsonl.wordWrap": {
+          "type": "boolean",
+          "default": true,
+          "description": "Wrap long JSON values and raw text to the viewer width by default. The viewer toggle remembers its preference."
+        },
+        "largeJsonl.scanChunkMiB": {
+          "type": "number",
+          "default": 4,
+          "enum": [
+            1,
+            4,
+            8
+          ],
+          "description": "Background scan buffer size. Reopen the viewer to apply."
+        },
+        "largeJsonl.recordLimitMiB": {
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 16,
+          "description": "Larger records use the streaming tree. Reopen the viewer to apply."
+        },
+        "largeJsonl.cacheLimitMiB": {
+          "type": "number",
+          "default": 512,
+          "minimum": 64,
+          "maximum": 4096,
+          "description": "Disk index cache budget. Active files are excluded from cleanup."
+        },
+        "largeJsonl.minimap": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show Monaco's code minimap in addition to the key outline."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "check": "tsc --noEmit",
+    "test": "npm run build && node --test --test-concurrency=1 dist/test/*.test.cjs",
+    "test:integration": "node scripts/integration.mjs",
+    "test:large-records": "node dist/performance/large-records.cjs",
+    "fixtures": "node dist/scripts/generate-fixtures.cjs",
+    "benchmark": "node dist/scripts/benchmark.cjs",
+    "package": "npm run check && vsce package --no-dependencies",
+    "vscode:prepublish": "npm run build"
+  },
+  "overrides": {
+    "dompurify": "3.4.16"
+  },
+  "dependencies": {
+    "jsonc-parser": "3.3.1",
+    "monaco-editor": "0.57.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/vscode": "1.95.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  }
+}

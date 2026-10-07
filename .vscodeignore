@@ -1,0 +1,10 @@
+**/*
+!package.json
+!README.md
+!LICENSE
+!CHANGELOG.md
+!docs/validation.md
+!docs/benchmarks/**
+!dist/extension.cjs
+!dist/workers/**
+!dist/webview/**

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-07T16:26:54.157Z",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "node": "v26.7.0",
+  "fileBytes": 1073766400,
+  "rows": 10486,
+  "chunkMiB": 1,
+  "cacheCondition": "OS cache uncontrolled; warm read reference runs after indexing, first read also reported; not a cold disk benchmark",
+  "firstReadMs": 1292.301208,
+  "readMs": 62.364500000000135,
+  "indexMs": 106.517875,
+  "readMiBPerSecond": 16419.9735025535,
+  "indexMiBPerSecond": 9613.629989332776,
+  "throughputRatio": 0.5854838917881167,
+  "first100Ms": 2.115624999999909,
+  "peakProcessRssMiB": 53.125,
+  "randomRecordBackendP50Ms": 13.699957999999924,
+  "randomRecordBackendP95Ms": 15.182374999999865,
+  "includesWebview": false
+}
