@@ -4,15 +4,21 @@
 
 ## 安装与打开
 
-1. 从 [GitHub Releases](https://github.com/liaojianjin/vscode-large-jsonl-viewer/releases/latest) 下载 `large-jsonl-viewer-0.1.1.vsix`，然后在 VS Code 的扩展视图中选择 **Install from VSIX… / 从 VSIX 安装…**。
+正式扩展 ID 为 `LiaoJianjin.large-jsonl-viewer`。
+
+1. 在 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=LiaoJianjin.large-jsonl-viewer) 安装，或从 [GitHub Releases](https://github.com/liaojianjin/vscode-large-jsonl-viewer/releases/latest) 下载 `large-jsonl-viewer-0.1.2.vsix` 后选择 **Install from VSIX… / 从 VSIX 安装…**。
 2. 在资源管理器右键 `.jsonl` / `.ndjson` 文件，选择 **Large JSONL: Open in Viewer**；也可从命令面板运行此命令并选择文件。
 3. 前 100 行渐进加入下拉列表。无需等待全文件索引即可浏览已就绪的行。
 
 也可使用终端安装：
 
 ```sh
-code --install-extension large-jsonl-viewer-0.1.1.vsix
+code --install-extension LiaoJianjin.large-jsonl-viewer
+# 本地安装包
+code --install-extension large-jsonl-viewer-0.1.2.vsix
 ```
+
+从旧版 `local-jsonl-tools.large-jsonl-viewer` 迁移时，请先卸载旧扩展再安装新版；发布者变更会产生不同的扩展 ID。
 
 扩展以 `option` 注册，不自动修改默认编辑器关联。首次跳到尚未索引的行需要等待扫描，当前正文保持可读；可单独取消跳转。
 
@@ -62,6 +68,8 @@ npm run package
 ```
 
 按 F5 启动开发窗口。`npm run watch` 监听构建。集成测试默认使用 macOS 已安装的 VS Code；其他平台可用 `JSONL_VSCODE_EXECUTABLE` 指定可执行文件，未指定则由 `@vscode/test-electron` 下载测试版本。测试使用临时用户和扩展目录。
+
+发布命令：`npm run publish:marketplace` 使用已登录的 `vsce` 发布者或 `VSCE_PAT`；`npm run publish:openvsx` 使用 `OVSX_PAT` 发布到 Open VSX。两个注册表均使用发布者 `LiaoJianjin`。不要将 token 写入源码或提交到 Git。
 
 可复现性能工具：
 

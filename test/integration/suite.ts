@@ -8,7 +8,7 @@ export async function run(): Promise<void> {
   const dir = await mkdtemp(path.join(tmpdir(), 'jsonl-host-test-')), file = path.join(dir, 'fixture.jsonl');
   try {
     await writeFile(file, Array.from({ length: 125 }, (_, i) => `{"i":${i},"n":9007199254740993,"中😀":{"value":true},"long":"${'中文😀abcdefgh'.repeat(300)}"}`).join('\n'));
-    const extension = vscode.extensions.getExtension<ViewerProvider>('local-jsonl-tools.large-jsonl-viewer'); assert.ok(extension);
+    const extension = vscode.extensions.getExtension<ViewerProvider>('LiaoJianjin.large-jsonl-viewer'); assert.ok(extension);
     const provider = await extension.activate(), uri = vscode.Uri.file(file);
     await vscode.commands.executeCommand('vscode.openWith', uri, 'largeJsonl.viewer');
     const deadline = Date.now() + 15000;

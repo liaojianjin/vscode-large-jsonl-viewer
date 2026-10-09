@@ -2,14 +2,16 @@
   "name": "large-jsonl-viewer",
   "displayName": "Large JSONL Viewer",
   "description": "A read-only, indexed JSONL/NDJSON viewer with folding and key navigation.",
-  "version": "0.1.1",
-  "publisher": "local-jsonl-tools",
+  "version": "0.1.2",
+  "publisher": "LiaoJianjin",
   "repository": {
     "type": "git",
     "url": "https://github.com/liaojianjin/vscode-large-jsonl-viewer.git"
   },
   "homepage": "https://github.com/liaojianjin/vscode-large-jsonl-viewer#readme",
-  "bugs": { "url": "https://github.com/liaojianjin/vscode-large-jsonl-viewer/issues" },
+  "bugs": {
+    "url": "https://github.com/liaojianjin/vscode-large-jsonl-viewer/issues"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.95.0"
@@ -119,10 +121,13 @@
     "fixtures": "node dist/scripts/generate-fixtures.cjs",
     "benchmark": "node dist/scripts/benchmark.cjs",
     "package": "npm run check && vsce package --no-dependencies",
+    "publish:marketplace": "vsce publish --no-dependencies",
+    "publish:openvsx": "ovsx publish --no-dependencies",
     "vscode:prepublish": "npm run build"
   },
   "overrides": {
-    "dompurify": "3.4.16"
+    "dompurify": "3.4.16",
+    "@vscode/vsce": "4.0.0"
   },
   "dependencies": {
     "jsonc-parser": "3.3.1",
@@ -134,6 +139,7 @@
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "4.0.0",
     "esbuild": "0.25.12",
+    "ovsx": "1.2.0",
     "typescript": "5.9.3"
   }
 }
