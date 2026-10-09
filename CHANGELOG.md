@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Add a PNG extension icon combining JSON braces, record lines and a magnifying glass.
+- Include the icon in the VSIX and show it in the README and extension registries.
+
 ## 0.1.2
 
 - Publish under the official `LiaoJianjin` publisher identity.
