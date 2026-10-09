@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- Make the padding outside the icon's rounded tile transparent with a real PNG alpha channel.
+- Preserve the navy tile and the JSON braces, record lines and magnifying glass.
+
 ## 0.1.3
 
 - Add a PNG extension icon combining JSON braces, record lines and a magnifying glass.
