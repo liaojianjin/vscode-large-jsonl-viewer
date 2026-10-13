@@ -7,6 +7,7 @@ export function activate(context: vscode.ExtensionContext): ViewerProvider {
     const target = uri ?? (await vscode.window.showOpenDialog({ canSelectMany: false, filters: { 'JSON Lines': ['jsonl', 'ndjson'] } }))?.[0];
     if (target) await vscode.commands.executeCommand('vscode.openWith', target, VIEW_TYPE);
   }));
+  for (const command of ['random', 'back', 'forward'] as const) context.subscriptions.push(vscode.commands.registerCommand(`largeJsonl.${command}`, () => provider.executeViewCommand(command)));
   context.subscriptions.push({ dispose: () => { for (const session of provider.sessions.values()) session.dispose(); } });
   return provider;
 }

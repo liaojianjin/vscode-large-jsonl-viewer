@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Add configurable default JSON expansion depth, with a viewer dropdown and live VS Code settings updates.
+- Add random record selection within the indexed range and back/forward browsing history.
+- Keep at most 200 committed visits per view; cancelled and failed jumps preserve history, and file changes clear it.
+- Add navigation commands and Alt+Left/Alt+Right keybindings.
+
 ## 0.1.4
 
 - Make the padding outside the icon's rounded tile transparent with a real PNG alpha channel.

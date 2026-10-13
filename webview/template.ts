@@ -2,6 +2,9 @@
 export const VIEWER_HTML = `
 <header class="toolbar">
   <nav class="navigation" aria-label="记录导航">
+    <button id="history-back" title="浏览历史后退 · Alt+←" aria-label="浏览历史后退" disabled>←</button>
+    <button id="history-forward" title="浏览历史前进 · Alt+→" aria-label="浏览历史前进" disabled>→</button>
+    <button id="random" title="随机查看一条已索引记录" disabled>随机</button>
     <button id="first" title="首行">首行</button>
     <button id="previous" title="上一行 · Alt+↑" aria-label="上一行">‹</button>
     <label for="line">第</label><input id="line" type="number" min="1" step="1" value="1" aria-label="源文件物理行号"><span>行</span>
@@ -17,6 +20,8 @@ export const VIEWER_HTML = `
     <details id="more" class="dropdown">
       <summary aria-label="更多查看操作">更多</summary>
       <div class="menu-panel actions-panel">
+        <label for="default-depth" class="menu-label">正文默认展开层数</label>
+        <select id="default-depth" aria-label="默认 JSON 展开层数"></select>
         <span class="menu-label">正文展开</span>
         <div class="button-group"><button id="fold-1">1 级</button><button id="fold-2">2 级</button><button id="unfold">全部</button></div>
         <button id="fold-all">折叠全部</button>

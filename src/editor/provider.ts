@@ -7,7 +7,8 @@ import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import { assertIdentity, decodeRecord, readExactly } from '../io/files';
 import { FileSession, pruneCache } from './session';
-import { parseClientMessage, type LargeNode, type ViewLayout } from '../protocol/types';
+import { parseClientMessage, type LargeNode, type ViewLayout, type ViewerInspection } from '../protocol/types';
+import { expandDepth } from '../json/expansion';
 
 export const VIEW_TYPE = 'largeJsonl.viewer';
 class Document implements vscode.CustomDocument {
@@ -16,12 +17,18 @@ class Document implements vscode.CustomDocument {
 }
 export class ViewerProvider implements vscode.CustomReadonlyEditorProvider<Document> {
   readonly sessions = new Map<string, FileSession>();
-  readonly renderedViews = new Map<string, { line: number; mode: string; valid: boolean; outlineCount: number; foldCount: number; layout?: ViewLayout }>();
+  readonly renderedViews = new Map<string, { line: number; mode: string; valid: boolean; outlineCount: number; foldCount: number; layout?: ViewLayout; inspection?: ViewerInspection }>();
   readonly viewErrors = new Map<string, string>();
   private readonly canonicalSessions = new Map<string, { session: FileSession; references: number }>();
   private readonly closing = new Map<string, Promise<void>>();
   private readonly activeDirectories = new Set<string>();
   private readonly status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 20);
+  private readonly commands = new Map<vscode.WebviewPanel, (command: 'random' | 'back' | 'forward') => void>();
+  executeViewCommand(command: 'random' | 'back' | 'forward'): void {
+    const active = [...this.commands].find(([panel]) => panel.active);
+    if (active) active[1](command);
+    else void vscode.window.showInformationMessage('请先打开 Large JSONL 查看器。');
+  }
   constructor(private readonly context: vscode.ExtensionContext) { context.subscriptions.push(this.status); }
   async openCustomDocument(uri: vscode.Uri, _context: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): Promise<Document> {
     if (uri.scheme !== 'file') throw new Error('当前版本仅支持 VS Code Desktop 的本地普通文件；该 URI 不支持随机分块读取。');
@@ -58,7 +65,14 @@ export class ViewerProvider implements vscode.CustomReadonlyEditorProvider<Docum
     let recordWorker: Worker | undefined, pageWorker: Worker | undefined;
     let currentRange: [number, number] | undefined;
     const nodes = new Map<string, LargeNode>();
-    const send = (message: Record<string, unknown>) => { if (!disposed && ready) void panel.webview.postMessage({ ...message, seq, generation: session.generation }); };
+    const send = (message: Record<string, unknown>) => {
+      const s = session.source;
+      const fileVersion = s ? `${s.size}:${s.mtimeMs}:${s.ctimeMs}:${s.dev}:${s.ino}:${s.fingerprint}` : undefined;
+      if (!disposed && ready) void panel.webview.postMessage({ ...message, seq, generation: session.generation, fileVersion });
+    };
+    this.commands.set(panel, command => send({ type: 'command', command }));
+    const sendConfig = () => { const config = vscode.workspace.getConfiguration('largeJsonl'); send({ type: 'config', minimap: config.get('minimap', false), wordWrap: config.get('wordWrap', true), defaultExpandDepth: expandDepth(config.get('defaultExpandDepth', 2)) }); };
+    const configuration = vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('largeJsonl')) sendConfig(); });
     const terminate = () => { void recordWorker?.terminate(); void pageWorker?.terminate(); recordWorker = undefined; pageWorker = undefined; };
     const remember = (node: LargeNode) => {
       if (node.end < node.start || !currentRange || node.start < currentRange[0] || node.end > currentRange[1]) return;
@@ -120,7 +134,8 @@ export class ViewerProvider implements vscode.CustomReadonlyEditorProvider<Docum
       try {
         if (message.type === 'startupError') { this.viewErrors.set(document.uri.toString(), message.message); console.error(`JSONL Webview: ${message.message}`); }
         else if (message.type === 'rendered') { this.renderedViews.set(document.uri.toString(), message); }
-        else if (message.type === 'ready') { ready = true; onProgress(); navigate(message.line ?? currentLine); send({ type: 'config', minimap: vscode.workspace.getConfiguration('largeJsonl').get('minimap', false), wordWrap: vscode.workspace.getConfiguration('largeJsonl').get('wordWrap', true) }); }
+        else if (message.type === 'ready') { ready = true; sendConfig(); onProgress(); navigate(message.line ?? currentLine); }
+        else if (message.type === 'setExpandDepth') { try { await vscode.workspace.getConfiguration('largeJsonl').update('defaultExpandDepth', message.depth, vscode.ConfigurationTarget.Global); } finally { sendConfig(); } }
         else if (message.type === 'navigate') navigate(message.line);
         else if (message.type === 'last') { if (session.progress.state === 'complete') navigate(Math.max(1, session.progress.lines)); else send({ type: 'error', message: '末行需要等待完整索引。' }); }
         else if (message.type === 'cancelJump') { seq++; pendingLine = undefined; terminate(); send({ type: 'jumpCancelled' }); }
@@ -171,6 +186,7 @@ export class ViewerProvider implements vscode.CustomReadonlyEditorProvider<Docum
     });
     panel.onDidDispose(() => {
       disposed = true; terminate(); receive.dispose(); visibility.dispose(); this.status.hide();
+      configuration.dispose(); this.commands.delete(panel);
       this.renderedViews.delete(document.uri.toString());
       this.viewErrors.delete(document.uri.toString());
       session.off('progress', onProgress); session.off('reset', onReset); session.off('invalid', onInvalid);

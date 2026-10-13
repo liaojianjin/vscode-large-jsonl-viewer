@@ -3,7 +3,7 @@
   "displayName": "Large JSONL Viewer",
   "icon": "assets/icon.png",
   "description": "A read-only, indexed JSONL/NDJSON viewer with folding and key navigation.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "publisher": "LiaoJianjin",
   "repository": {
     "type": "git",
@@ -46,6 +46,18 @@
       {
         "command": "largeJsonl.open",
         "title": "Large JSONL: Open in Viewer"
+      },
+      {
+        "command": "largeJsonl.random",
+        "title": "Large JSONL: Random Record"
+      },
+      {
+        "command": "largeJsonl.back",
+        "title": "Large JSONL: Go Back"
+      },
+      {
+        "command": "largeJsonl.forward",
+        "title": "Large JSONL: Go Forward"
       }
     ],
     "menus": {
@@ -57,6 +69,18 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "largeJsonl.back",
+        "key": "alt+left",
+        "when": "activeCustomEditorId == largeJsonl.viewer"
+      },
+      {
+        "command": "largeJsonl.forward",
+        "key": "alt+right",
+        "when": "activeCustomEditorId == largeJsonl.viewer"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "largeJsonl.viewer",
@@ -75,6 +99,13 @@
     "configuration": {
       "title": "Large JSONL Viewer",
       "properties": {
+        "largeJsonl.defaultExpandDepth": {
+          "type": "integer",
+          "default": 2,
+          "minimum": -1,
+          "maximum": 128,
+          "description": "Default expansion depth for formatted JSON. 0 folds everything; -1 expands everything. Changes apply to open viewers and newly selected records."
+        },
         "largeJsonl.wordWrap": {
           "type": "boolean",
           "default": true,

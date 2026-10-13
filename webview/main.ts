@@ -6,6 +6,8 @@ import 'monaco-editor/editor/contrib/stickyScroll/browser/stickyScrollContributi
 import '../node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.css';
 import './style.css';
 import { VIEWER_HTML } from './template';
+import { RecordHistory, randomLine, validLine } from './navigation';
+import { expandDepth } from '../src/json/expansion';
 import type { LargeNode, LargePage, NormalRecord, OutlineNode, Progress } from '../src/protocol/types';
 
 const vscode: { postMessage(value: unknown): void; getState(): any; setState(value: unknown): void } = (globalThis as any).jsonlHostApi;
@@ -30,9 +32,13 @@ let workerBlob: string | undefined;
   return new Worker(workerBlob, { name: 'jsonl-editor' });
 } };
 const editor = monaco.editor.create($('editor'), { readOnly: true, domReadOnly: true, automaticLayout: true, minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, tabSize: 2, wordWrap: wordWrap ? 'on' : 'off', wrappingIndent: 'indent', folding: true, foldingStrategy: 'auto', foldingMaximumRegions: 100000, renderValidationDecorations: 'on', stickyScroll: { enabled: true }, unicodeHighlight: { ambiguousCharacters: false }, ariaLabel: '当前 JSONL 记录' });
-let current: NormalRecord | undefined, largePage: LargePage | undefined, currentLine = saved.line ?? 1, seq = -1, generation = -1;
+let current: NormalRecord | undefined, largePage: LargePage | undefined, currentLine = validLine(saved.line) ? saved.line : 1, seq = -1, generation = -1;
+const history = new RecordHistory(saved.history);
+let fileVersion = typeof saved.fileVersion === 'string' ? saved.fileVersion : undefined;
+if (history.current !== undefined && history.current !== currentLine) history.clear();
+let defaultExpandDepth = 2, foldRequest = 0;
 let rawMode = !!saved.raw, outlineDepth = saved.depth === 2 ? 2 : 1, outlineNodes: OutlineNode[] = [], selected = '';
-let progress: Progress | undefined, waiting: number | undefined, requestId = 0;
+let progress: Progress | undefined, waiting: number | undefined, requestId = 0, jumpCancellationPending = false;
 let largeRenderSeq = -1;
 const largeSecond = new Map<string, LargeNode[]>();
 let currentModel: monaco.editor.ITextModel | undefined;
@@ -40,7 +46,21 @@ const decorations = editor.createDecorationsCollection();
 const viewStates = new Map<number, monaco.editor.ICodeEditorViewState>();
 const pageRequests = new Map<number, { target: HTMLElement; node: LargeNode; kind: 'page' | 'window' }>();
 const treeNodes = new Map<string, { element: HTMLElement; node: LargeNode }>();
-const save = () => vscode.setState({ line: currentLine, raw: rawMode, depth: outlineDepth, width: $('sidebar').style.width, wordWrap, outlineVisible, focusMode });
+const save = () => vscode.setState({ line: currentLine, raw: rawMode, depth: outlineDepth, width: $('sidebar').style.width, wordWrap, outlineVisible, focusMode, history: history.snapshot(), fileVersion });
+function updateNavigation(): void {
+  const available = progress && !['changed', 'error'].includes(progress.state);
+  ($<HTMLButtonElement>('history-back')).disabled = !available || !history.canGoBack;
+  ($<HTMLButtonElement>('history-forward')).disabled = !available || !history.canGoForward;
+  ($<HTMLButtonElement>('random')).disabled = !available || !progress?.lines || progress?.lines === 1 && currentLine === 1;
+  $('random').title = progress?.state === 'complete' ? `随机查看第 1–${progress.lines.toLocaleString()} 行` : `随机查看已索引的第 1–${progress?.lines.toLocaleString() ?? 0} 行`;
+}
+function showDefaultDepth(): void {
+  const select = $<HTMLSelectElement>('default-depth'); select.replaceChildren();
+  const depths = [...new Set([-1, 0, ...Array.from({ length: 10 }, (_, i) => i + 1), defaultExpandDepth])].sort((a, b) => a - b);
+  for (const depth of depths) { const option = document.createElement('option'); option.value = String(depth); option.textContent = depth === -1 ? '全部展开' : depth === 0 ? '全部折叠' : `${depth} 级`; select.append(option); }
+  select.value = String(defaultExpandDepth);
+}
+showDefaultDepth();
 if (typeof saved.width === 'string' && Number.isFinite(parseFloat(saved.width))) $('sidebar').style.width = `${Math.max(140, Math.min(400, parseFloat(saved.width)))}px`;
 function updateLayout(): void {
   const visible = outlineVisible && !focusMode;
@@ -88,6 +108,7 @@ function updateProgress(p: Progress): void {
   select.value = String(currentLine);
   if (!p.lines && p.state === 'complete') message('文件为空，没有 JSONL 记录。');
   else if (waiting !== undefined) message(`正在定位第 ${waiting.toLocaleString()} 行；当前可访问第 1–${p.lines.toLocaleString()} 行。`, false, true);
+  updateNavigation();
 }
 function setModel(text: string, language = 'json'): void {
   currentModel?.dispose();
@@ -96,8 +117,32 @@ function setModel(text: string, language = 'json'): void {
 }
 async function foldDepth(depth: number): Promise<void> {
   if (!current?.valid || rawMode) return;
+  const model = currentModel, request = ++foldRequest;
   await editor.getAction('editor.unfoldAll')?.run();
+  if (model !== currentModel || request !== foldRequest) return;
+  if (depth === -1) return;
   await editor.getAction('editor.fold')?.run({ levels: 1, direction: 'down', selectionLines: current.folds.filter(f => f.depth >= depth).map(f => f.start - 1) });
+}
+function reportRendered(): void {
+  if (!current || !currentModel) return;
+  const record = current, model = currentModel, line = currentLine, requestSeq = seq;
+  requestAnimationFrame(() => {
+    if (current !== record || currentModel !== model || currentLine !== line || requestSeq !== seq) return;
+    const folding = editor.saveViewState()?.contributionsState['editor.contrib.folding'] as { collapsedRegions?: { startLineNumber: number; isCollapsed: boolean }[] } | undefined;
+    const snapshot = history.snapshot();
+    send({ type: 'rendered', line, mode: 'normal', valid: record.valid, outlineCount: record.outline.length, foldCount: record.folds.length, layout: {
+      viewportWidth: $('app').clientWidth, viewportHeight: $('app').clientHeight, contentWidth: $('content').clientWidth, contentHeight: $('content').clientHeight,
+      wordWrap: editor.getOption(monaco.editor.EditorOption.wordWrap) === 'on', textHeight: editor.getContentHeight(), unwrappedTextHeight: model.getLineCount() * editor.getOption(monaco.editor.EditorOption.lineHeight)
+    }, inspection: { expandDepth: defaultExpandDepth, collapsedLines: (folding?.collapsedRegions ?? []).filter(f => f.isCollapsed).slice(0, 32).map(f => f.startLineNumber), historyIndex: snapshot.cursor, historyLength: snapshot.entries.length, canGoBack: history.canGoBack, canGoForward: history.canGoForward } });
+  });
+}
+function changeDefaultDepth(value: unknown): void {
+  const depth = expandDepth(value);
+  if (depth !== defaultExpandDepth) {
+    defaultExpandDepth = depth; viewStates.clear();
+    if (current) void foldDepth(depth).then(reportRendered);
+  }
+  showDefaultDepth();
 }
 function renderNormal(record: NormalRecord): void {
   current = record; largePage = undefined; pageRequests.clear(); treeNodes.clear(); $('large').replaceChildren();
@@ -107,12 +152,10 @@ function renderNormal(record: NormalRecord): void {
   monaco.editor.setModelMarkers(currentModel!, 'jsonl', record.issues.map(e => ({ message: e.message, severity: monaco.MarkerSeverity.Error, startLineNumber: e.line, endLineNumber: e.line, startColumn: e.column, endColumn: e.column + 1 })));
   $('details').textContent = `源文件第 ${currentLine.toLocaleString()} 行 · ${record.valid ? '严格 JSON 校验通过' : '无效记录，显示原文'}${record.bom ? ' · 已忽略文件开头 UTF-8 BOM' : ''}`;
   if (!record.valid) message(`第 ${currentLine} 行无效：${record.issues.map(e => `${e.message} (${e.line}:${e.column})`).join('；')}`, true);
-  const state = viewStates.get(currentLine); if (state && !rawMode) editor.restoreViewState(state); else requestAnimationFrame(() => { void foldDepth(2); });
+  const state = viewStates.get(currentLine);
+  if (state && !rawMode) { editor.restoreViewState(state); reportRendered(); }
+  else void foldDepth(defaultExpandDepth).then(reportRendered);
   renderOutline(); updateButtons();
-  requestAnimationFrame(() => send({ type: 'rendered', line: currentLine, mode: 'normal', valid: record.valid, outlineCount: record.outline.length, foldCount: record.folds.length, layout: {
-    viewportWidth: $('app').clientWidth, viewportHeight: $('app').clientHeight, contentWidth: $('content').clientWidth, contentHeight: $('content').clientHeight,
-    wordWrap: editor.getOption(monaco.editor.EditorOption.wordWrap) === 'on', textHeight: editor.getContentHeight(), unwrappedTextHeight: currentModel!.getLineCount() * editor.getOption(monaco.editor.EditorOption.lineHeight)
-  } }));
 }
 function updateButtons(): void {
   for (const id of ['fold-1', 'fold-2', 'unfold', 'fold-all', 'raw', 'find']) ($<HTMLButtonElement>(id)).disabled = !current;
@@ -239,19 +282,24 @@ function renderLarge(page: LargePage): void {
   if (page.error) message(page.error, true);
   if (page.done) requestAnimationFrame(() => send({ type: 'rendered', line: currentLine, mode: 'large', valid: page.valid, outlineCount: page.children.length, foldCount: 0 }));
 }
-function navigate(line: number): void {
+function navigate(line: number, fromHistory = false): void {
   if (!Number.isSafeInteger(line) || line < 1) { message('请输入从 1 开始的整数行号。', true); return; }
   const state = editor.saveViewState(); if (state && current && !rawMode) { viewStates.delete(currentLine); viewStates.set(currentLine, state); while (viewStates.size > 10) viewStates.delete(viewStates.keys().next().value!); }
-  waiting = line; send({ type: 'navigate', line });
+  if (!fromHistory) history.requestVisit(line);
+  jumpCancellationPending = false; waiting = line; updateNavigation(); send({ type: 'navigate', line });
 }
+function historyMove(direction: -1 | 1): void { const line = history.requestMove(direction); if (line !== undefined) navigate(line, true); }
+$('history-back').onclick = () => historyMove(-1); $('history-forward').onclick = () => historyMove(1);
+$('random').onclick = () => { if (!progress || ['changed', 'error'].includes(progress.state)) return; const line = randomLine(progress.lines, history.pendingLine ?? currentLine); if (line !== undefined) navigate(line); };
 $('first').onclick = () => navigate(1); $('previous').onclick = () => navigate(Math.max(1, currentLine - 1)); $('next').onclick = () => navigate(currentLine + 1);
 $('go').onclick = () => navigate(Number(($('line') as HTMLInputElement).value)); $('line').onkeydown = event => { if (event.key === 'Enter') $('go').click(); };
 $('initial').onchange = () => navigate(Number(($('initial') as HTMLSelectElement).value)); $('last').onclick = () => { if (progress?.state === 'complete') navigate(progress.lines); };
 $('pause').onclick = () => send({ type: progress?.state === 'paused' || progress?.state === 'cancelled' ? 'resume' : 'pause' }); $('cancel-index').onclick = () => send({ type: 'cancelIndex' }); $('reload').onclick = () => send({ type: 'reload' });
-$('cancel-jump').onclick = () => { waiting = undefined; send({ type: 'cancelJump' }); }; $('dismiss').onclick = clearMessage;
+$('cancel-jump').onclick = () => { waiting = undefined; jumpCancellationPending = true; history.cancel(); updateNavigation(); send({ type: 'cancelJump' }); }; $('dismiss').onclick = clearMessage;
 $('fold-1').onclick = () => { void foldDepth(1); }; $('fold-2').onclick = () => { void foldDepth(2); }; $('unfold').onclick = () => { void editor.getAction('editor.unfoldAll')?.run(); }; $('fold-all').onclick = () => { void editor.getAction('editor.foldAll')?.run(); };
 $('raw').onclick = () => { rawMode = !rawMode; if (current) renderNormal(current); save(); }; $('find').onclick = () => { void editor.getAction('actions.find')?.run(); };
 $('copy').onclick = () => send({ type: 'copyRaw' }); $('export').onclick = () => send({ type: 'exportRaw' });
+$('default-depth').onchange = () => { const depth = Number($<HTMLSelectElement>('default-depth').value); changeDefaultDepth(depth); send({ type: 'setExpandDepth', depth }); };
 $('wrap').onclick = toggleWrap;
 $('toggle-outline').onclick = () => { if (focusMode) { focusMode = false; outlineVisible = true; } else outlineVisible = !outlineVisible; updateLayout(); save(); };
 $('close-outline').onclick = () => { outlineVisible = false; updateLayout(); save(); };
@@ -262,6 +310,8 @@ for (const depth of [1, 2]) $(`depth-${depth}`).onclick = () => { outlineDepth =
 window.addEventListener('keydown', event => {
   if (event.altKey && event.key === 'ArrowUp') { event.preventDefault(); navigate(Math.max(1, currentLine - 1)); }
   else if (event.altKey && event.key === 'ArrowDown') { event.preventDefault(); navigate(currentLine + 1); }
+  else if (event.altKey && event.key === 'ArrowLeft') { event.preventDefault(); historyMove(-1); }
+  else if (event.altKey && event.key === 'ArrowRight') { event.preventDefault(); historyMove(1); }
   else if (event.altKey && event.code === 'KeyZ') { event.preventDefault(); toggleWrap(); }
   else if (event.key === 'Escape') { for (const menu of document.querySelectorAll<HTMLDetailsElement>('.dropdown[open]')) menu.open = false; }
 });
@@ -275,19 +325,26 @@ window.addEventListener('message', event => {
   const m = event.data;
   if (!m || typeof m.type !== 'string' || typeof m.seq !== 'number' || typeof m.generation !== 'number') return;
   if (m.generation < generation || (m.generation === generation && m.seq < seq)) return;
-  if (m.generation > generation) { current = undefined; largePage = undefined; viewStates.clear(); pageRequests.clear(); treeNodes.clear(); }
+  if (jumpCancellationPending && ['record', 'large', 'largeStart'].includes(m.type)) return;
+  if (typeof m.fileVersion === 'string') { if (fileVersion && fileVersion !== m.fileVersion) { history.clear(); viewStates.clear(); } fileVersion = m.fileVersion; }
+  if (['record', 'large', 'largeStart'].includes(m.type) && history.pendingLine !== undefined && history.pendingLine !== m.line) return;
+  if (m.generation > generation) { if (generation >= 0) history.clear(); current = undefined; largePage = undefined; viewStates.clear(); pageRequests.clear(); treeNodes.clear(); }
   generation = m.generation; seq = m.seq;
-  if (m.type === 'restore') send({ type: 'ready', line: currentLine });
+  if (m.type === 'restore') { jumpCancellationPending = false; history.cancel(); waiting = undefined; updateNavigation(); send({ type: 'ready', line: currentLine }); }
+  else if (m.type === 'command') { const ids: Record<string, string> = { random: 'random', back: 'history-back', forward: 'history-forward' }; if (ids[m.command]) $<HTMLButtonElement>(ids[m.command]).click(); }
   else if (m.type === 'progress') updateProgress(m.progress);
   else if (m.type === 'waiting') { waiting = m.line; message(`正在定位第 ${m.line.toLocaleString()} 行；已索引 ${progress?.lines.toLocaleString() ?? 0} 行。`, false, true); }
   else if (m.type === 'loading') { waiting = undefined; message(`正在读取第 ${m.line.toLocaleString()} 行 · ${bytes(m.bytes)}…`); }
   else if (m.type === 'record' || m.type === 'large') {
+    if (!history.commit(m.line)) return;
     currentLine = m.line; waiting = undefined; clearMessage(); ($('line') as HTMLInputElement).value = String(currentLine); ($('initial') as HTMLSelectElement).value = String(currentLine);
-    if (m.type === 'record') renderNormal(m.record); else renderLarge(m.page); save();
+    if (m.type === 'record') renderNormal(m.record); else renderLarge(m.page); updateNavigation(); save();
   } else if (m.type === 'largeStart') {
+    if (!history.commit(m.line)) return;
     currentLine = m.line;
     renderLarge({ mode: 'large', root: { id: `b${m.start}`, key: '$', kind: 'string', start: m.start, end: m.end, preview: '' }, children: [], skip: 0, total: 0, scannedBytes: 0, size: m.end - m.start, done: false, valid: false });
     message('超长记录：正在增量校验。扫描可通过切行取消；可立即查看有界原文窗口。');
+    updateNavigation(); save();
   }
   else if (m.type === 'page') {
     const request = pageRequests.get(m.request); if (request?.kind === 'page') {
@@ -303,12 +360,12 @@ window.addEventListener('message', event => {
     const previous = document.createElement('button'); previous.textContent = '上一窗口'; previous.disabled = m.offset === 0; previous.onclick = () => requestWindow(request.target, request.node, Math.max(0, m.offset - 65536));
     const next = document.createElement('button'); next.textContent = '下一窗口'; next.disabled = m.next >= m.total; next.onclick = () => requestWindow(request.target, request.node, m.next);
     request.target.append(info, pre, previous, next); pageRequests.delete(m.request);
-  } else if (m.type === 'empty') { waiting = undefined; current = undefined; largePage = undefined; currentModel?.dispose(); editor.setModel(null); $('large').replaceChildren(); renderOutline(); updateButtons(); message(m.message); }
-  else if (m.type === 'error' || m.type === 'invalid') { waiting = undefined; message(m.message, true); if (m.type === 'invalid') { current = undefined; largePage = undefined; currentModel?.dispose(); editor.setModel(null); $('large').replaceChildren(); renderOutline(); updateButtons(); } }
+  } else if (m.type === 'empty') { history.clear(); waiting = undefined; current = undefined; largePage = undefined; currentModel?.dispose(); editor.setModel(null); $('large').replaceChildren(); renderOutline(); updateButtons(); updateNavigation(); save(); message(m.message); }
+  else if (m.type === 'error' || m.type === 'invalid') { history.cancel(); waiting = undefined; message(m.message, true); if (m.type === 'invalid') { history.clear(); current = undefined; largePage = undefined; currentModel?.dispose(); editor.setModel(null); $('large').replaceChildren(); renderOutline(); updateButtons(); } updateNavigation(); save(); }
   else if (m.type === 'notice') message(m.message);
-  else if (m.type === 'jumpCancelled') { waiting = undefined; clearMessage(); }
-  else if (m.type === 'reset') { currentModel?.dispose(); editor.setModel(null); current = undefined; largePage = undefined; $('large').replaceChildren(); renderOutline(); updateButtons(); }
-  else if (m.type === 'config') { editor.updateOptions({ minimap: { enabled: m.minimap } }); if (!wrapCustomized && typeof m.wordWrap === 'boolean') { wordWrap = m.wordWrap; updateLayout(); } }
+  else if (m.type === 'jumpCancelled') { jumpCancellationPending = false; history.cancel(); waiting = undefined; updateNavigation(); clearMessage(); }
+  else if (m.type === 'reset') { jumpCancellationPending = false; history.clear(); currentModel?.dispose(); editor.setModel(null); current = undefined; largePage = undefined; $('large').replaceChildren(); renderOutline(); updateButtons(); updateNavigation(); save(); }
+  else if (m.type === 'config') { changeDefaultDepth(m.defaultExpandDepth); editor.updateOptions({ minimap: { enabled: m.minimap } }); if (!wrapCustomized && typeof m.wordWrap === 'boolean') { wordWrap = m.wordWrap; updateLayout(); } }
 });
 window.addEventListener('pagehide', () => { editor.dispose(); currentModel?.dispose(); if (workerBlob) URL.revokeObjectURL(workerBlob); });
 updateButtons(); send({ type: 'ready', line: Number.isSafeInteger(currentLine) && currentLine > 0 ? currentLine : 1 });

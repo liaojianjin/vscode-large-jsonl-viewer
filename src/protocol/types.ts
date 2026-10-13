@@ -24,9 +24,11 @@ export interface ViewLayout {
   viewportWidth: number; viewportHeight: number; contentWidth: number; contentHeight: number;
   wordWrap: boolean; textHeight: number; unwrappedTextHeight: number;
 }
+export interface ViewerInspection { expandDepth: number; collapsedLines: number[]; historyIndex: number; historyLength: number; canGoBack: boolean; canGoForward: boolean }
 export type ClientMessage =
   | { type: 'startupError'; message: string }
-  | { type: 'rendered'; line: number; mode: 'normal' | 'large'; valid: boolean; outlineCount: number; foldCount: number; layout?: ViewLayout }
+  | { type: 'rendered'; line: number; mode: 'normal' | 'large'; valid: boolean; outlineCount: number; foldCount: number; layout?: ViewLayout; inspection?: ViewerInspection }
+  | { type: 'setExpandDepth'; depth: number }
   | { type: 'ready'; line?: number }
   | { type: 'navigate'; line: number }
   | { type: 'last' | 'cancelJump' | 'pause' | 'resume' | 'cancelIndex' | 'reload' | 'copyRaw' | 'exportRaw' }
@@ -38,11 +40,14 @@ export function parseClientMessage(value: unknown): ClientMessage | undefined {
   if (typeof m.type !== 'string') return;
   const integer = (n: unknown, min = 0) => typeof n === 'number' && Number.isSafeInteger(n) && n >= min;
   switch (m.type) {
+    case 'setExpandDepth': if (typeof m.depth === 'number' && Number.isInteger(m.depth) && m.depth >= -1 && m.depth <= 128) return { type: 'setExpandDepth', depth: m.depth }; return;
     case 'startupError': if (typeof m.message === 'string' && m.message.length <= 2000) return { type: 'startupError', message: m.message }; return;
     case 'rendered': {
       const layout = m.layout as ViewLayout | undefined;
       const validLayout = layout && typeof layout.wordWrap === 'boolean' && ['viewportWidth', 'viewportHeight', 'contentWidth', 'contentHeight', 'textHeight', 'unwrappedTextHeight'].every(key => integer((layout as unknown as Record<string, unknown>)[key]));
-      if (integer(m.line, 1) && (m.mode === 'normal' || m.mode === 'large') && typeof m.valid === 'boolean' && integer(m.outlineCount) && integer(m.foldCount)) return { type: 'rendered', line: m.line as number, mode: m.mode, valid: m.valid, outlineCount: m.outlineCount as number, foldCount: m.foldCount as number, layout: validLayout ? layout : undefined };
+      const inspection = m.inspection as ViewerInspection | undefined;
+      const validInspection = inspection && integer(inspection.expandDepth, -1) && inspection.expandDepth <= 128 && integer(inspection.historyIndex, -1) && integer(inspection.historyLength) && inspection.historyLength <= 200 && typeof inspection.canGoBack === 'boolean' && typeof inspection.canGoForward === 'boolean' && Array.isArray(inspection.collapsedLines) && inspection.collapsedLines.length <= 32 && inspection.collapsedLines.every(n => integer(n, 1));
+      if (integer(m.line, 1) && (m.mode === 'normal' || m.mode === 'large') && typeof m.valid === 'boolean' && integer(m.outlineCount) && integer(m.foldCount)) return { type: 'rendered', line: m.line as number, mode: m.mode, valid: m.valid, outlineCount: m.outlineCount as number, foldCount: m.foldCount as number, layout: validLayout ? layout : undefined, inspection: validInspection ? inspection : undefined };
       return;
     }
     case 'ready': return { type: 'ready', line: integer(m.line, 1) ? m.line as number : undefined };

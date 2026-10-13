@@ -8,7 +8,7 @@
 
 正式扩展 ID 为 `LiaoJianjin.large-jsonl-viewer`。
 
-1. 在 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=LiaoJianjin.large-jsonl-viewer) 或 [Open VSX](https://open-vsx.org/extension/LiaoJianjin/large-jsonl-viewer) 安装，也可从 [GitHub Releases](https://github.com/liaojianjin/vscode-large-jsonl-viewer/releases/latest) 下载 `large-jsonl-viewer-0.1.4.vsix` 后选择 **Install from VSIX… / 从 VSIX 安装…**。
+1. 在 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=LiaoJianjin.large-jsonl-viewer) 或 [Open VSX](https://open-vsx.org/extension/LiaoJianjin/large-jsonl-viewer) 安装，也可从 [GitHub Releases](https://github.com/liaojianjin/vscode-large-jsonl-viewer/releases/latest) 下载 `large-jsonl-viewer-0.2.0.vsix` 后选择 **Install from VSIX… / 从 VSIX 安装…**。
 2. 在资源管理器右键 `.jsonl` / `.ndjson` 文件，选择 **Large JSONL: Open in Viewer**；也可从命令面板运行此命令并选择文件。
 3. 前 100 行渐进加入下拉列表。无需等待全文件索引即可浏览已就绪的行。
 
@@ -17,7 +17,7 @@
 ```sh
 code --install-extension LiaoJianjin.large-jsonl-viewer
 # 本地安装包
-code --install-extension large-jsonl-viewer-0.1.4.vsix
+code --install-extension large-jsonl-viewer-0.2.0.vsix
 ```
 
 从旧版 `local-jsonl-tools.large-jsonl-viewer` 迁移时，请先卸载旧扩展再安装新版；发布者变更会产生不同的扩展 ID。
@@ -27,9 +27,12 @@ code --install-extension large-jsonl-viewer-0.1.4.vsix
 ## 操作
 
 - 首行、上一行、下一行、输入物理行号跳转；`Alt+↑` / `Alt+↓` 切行。完整索引后可跳到末行。
+- **随机** 跳到任意已索引记录，尽量避开当前行；索引完成前仅在已就绪范围内抽样，完成后覆盖全文件。
+- **← / →** 按浏览历史后退、前进（`Alt+←` / `Alt+→`）。这与上一行/下一行独立：例如 `1 → 随机第 80 行 → 随机第 12 行`，后退回到第 80 行，前进回到第 12 行。后退后重新跳行会清除前进分支；取消、失败与过期请求不加入历史。每个视图最多保留 200 次已显示的访问，文件版本变化时清空。
 - 顶部仅保留一条紧凑工具栏，索引与记录状态移至底部。点击索引状态可查看初始范围、字节进度、速度与剩余时间，并暂停、取消或继续索引。
 - 默认开启 **自动换行**，长字符串随正文宽度折行，不修改原文或复制内容。开关同时作用于格式化正文、原始文本和超长记录的文本窗口，切行与重新显示时保留偏好。
 - 常规记录使用本地打包的 Monaco；**更多** 中提供对象/数组折叠、展开 1/2 级或全部、原始文本切换、查找、复制与导出。
+- **更多 → 正文默认展开层数** 可设置后续记录的默认深度，也可在 VS Code 设置中调整 `largeJsonl.defaultExpandDepth`。默认 2 级，支持 1–128 级；`0` 全部折叠，`-1` 全部展开。修改立即作用于当前常规正文，并保存为用户设置；超长记录的分页结构仍按需展开。
 - 右侧 key 导航可显示 1/2 级；点击定位并展开祖先，中文、emoji 和重复 key 都以实际位置定位。面板默认占约 20% 宽度、上限 200px，支持调整和收起；窄窗口默认收起。
 - **专注** 模式隐藏结构导航与底部状态栏，正文占满可用宽度。退出后恢复原来的结构面板偏好。
 - 格式化只改空白：保留 `9007199254740993`、`-0`、精度较高的小数、科学计数法、重复 key、属性顺序和字符串转义。
@@ -48,6 +51,7 @@ code --install-extension large-jsonl-viewer-0.1.4.vsix
 
 | 设置 | 默认值 | 用途 |
 | --- | --- | --- |
+| `largeJsonl.defaultExpandDepth` | 2 | 常规正文默认展开层数；0 全部折叠，-1 全部展开 |
 | `largeJsonl.wordWrap` | true | 新视图默认按宽度自动换行，视图内开关保留偏好 |
 | `largeJsonl.scanChunkMiB` | 4 | 索引扫描块，支持 1/4/8 MiB |
 | `largeJsonl.recordLimitMiB` | 8 | 单行超过此预算时进入流式结构模式 |
