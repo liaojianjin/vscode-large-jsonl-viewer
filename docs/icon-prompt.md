@@ -1,6 +1,6 @@
 # Extension icon
 
-Created on 2026-10-09 and edited on 2026-10-10 and 2026-10-14 using the built-in `image_gen` tool. Final project asset: `assets/icon.png` (1254 × 1254 RGBA PNG, 943,402 bytes).
+Created on 2026-10-09 and edited on 2026-10-10 and 2026-10-14 using the built-in `image_gen` tool. Final project asset: `assets/icon.png` (512 × 512 RGBA PNG).
 
 The JSON braces and record lines represent JSONL records; the magnifying glass represents inspection and navigation. The high contrast mark is designed for extension lists and store pages.
 
@@ -20,4 +20,4 @@ Edit setting: transparent background true. PNG decoding verified alpha 0 at all 
 
 Use case: precise-object-edit. Edit this existing Large JSONL Viewer icon into a small-file-size extension-store PNG asset. Output a square 256x256 PNG, not a mockup. Preserve the same dark navy rounded-square tile, cyan JSON braces, the same horizontal record bars with a selected blue bar, and the white magnifying glass with the same layout and silhouette. Keep actual alpha transparency ONLY outside the rounded tile. The interior navy tile and shapes should be opaque. To make PNG compression excellent, use clean FLAT solid fills, no texture, no fine grain, no dithering, no noise, no elaborate gradients, no photographic shading. Keep crisp antialiased edges. Do not add text, logos, symbols, shadows or elements. This must be optimized as a tiny UI icon and remain recognizable at 32 pixels; intended final PNG file size well below 1 MiB.
 
-The tool returned a 1254 × 1254 PNG. Its IDAT stream was recompressed losslessly with zlib level 9, keeping all decoded image data and other PNG chunks unchanged. Final size is below the Marketplace's 1 MiB limit.
+The tool returned a 1254 × 1254 PNG. Its IDAT stream was initially recompressed losslessly with zlib level 9. Marketplace also requires dimensions no greater than 1024 × 1024, so a 512 × 512 distribution thumbnail was exported with macOS `sips`, retaining the alpha channel. The generated source remains in the image tool's output directory.

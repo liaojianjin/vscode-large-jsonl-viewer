@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Export the generated transparent icon at 512 × 512 to meet Marketplace dimension limits.
+
 ## 0.2.1
 
 - Use a smaller transparent PNG icon that meets the Marketplace's 1 MiB upload limit.

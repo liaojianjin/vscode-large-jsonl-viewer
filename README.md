@@ -8,7 +8,7 @@
 
 正式扩展 ID 为 `LiaoJianjin.large-jsonl-viewer`。
 
-1. 在 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=LiaoJianjin.large-jsonl-viewer) 或 [Open VSX](https://open-vsx.org/extension/LiaoJianjin/large-jsonl-viewer) 安装，也可从 [GitHub Releases](https://github.com/liaojianjin/vscode-large-jsonl-viewer/releases/latest) 下载 `large-jsonl-viewer-0.2.1.vsix` 后选择 **Install from VSIX… / 从 VSIX 安装…**。
+1. 在 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=LiaoJianjin.large-jsonl-viewer) 或 [Open VSX](https://open-vsx.org/extension/LiaoJianjin/large-jsonl-viewer) 安装，也可从 [GitHub Releases](https://github.com/liaojianjin/vscode-large-jsonl-viewer/releases/latest) 下载 `large-jsonl-viewer-0.2.2.vsix` 后选择 **Install from VSIX… / 从 VSIX 安装…**。
 2. 在资源管理器右键 `.jsonl` / `.ndjson` 文件，选择 **Large JSONL: Open in Viewer**；也可从命令面板运行此命令并选择文件。
 3. 前 100 行渐进加入下拉列表。无需等待全文件索引即可浏览已就绪的行。
 
@@ -17,7 +17,7 @@
 ```sh
 code --install-extension LiaoJianjin.large-jsonl-viewer
 # 本地安装包
-code --install-extension large-jsonl-viewer-0.2.1.vsix
+code --install-extension large-jsonl-viewer-0.2.2.vsix
 ```
 
 从旧版 `local-jsonl-tools.large-jsonl-viewer` 迁移时，请先卸载旧扩展再安装新版；发布者变更会产生不同的扩展 ID。

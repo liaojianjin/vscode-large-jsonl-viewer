@@ -3,7 +3,7 @@
   "displayName": "Large JSONL Viewer",
   "icon": "assets/icon.png",
   "description": "A read-only, indexed JSONL/NDJSON viewer with folding and key navigation.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "LiaoJianjin",
   "repository": {
     "type": "git",
