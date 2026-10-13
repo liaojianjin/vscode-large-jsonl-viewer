@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Use a smaller transparent PNG icon that meets the Marketplace's 1 MiB upload limit.
+
 ## 0.2.0
 
 - Add configurable default JSON expansion depth, with a viewer dropdown and live VS Code settings updates.
